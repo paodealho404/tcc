@@ -5,7 +5,7 @@ SOCEDS_ROOT ?= $(SOCEDS_DEST_ROOT)
 HWLIBS_ROOT = $(SOCEDS_ROOT)/ip/altera/hps/altera_hps/hwlib
 CFLAGS = -g -Wall   -D$(ALT_DEVICE_FAMILY) -I$(HWLIBS_ROOT)/include/$(ALT_DEVICE_FAMILY)   -I$(HWLIBS_ROOT)/include/
 LDFLAGS =  -g -Wall
-CC = arm-eabi-gcc
+CC = arm-none-linux-gnueabihf-gcc
 ARCH= arm
  
 build: $(TARGET) 
