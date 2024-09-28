@@ -70,6 +70,57 @@ static inline void clear_ss(struct spi *spi)
 #endif
 }
 
+int setup_mem_addr(struct spi *spi)
+{
+
+	void *virtual_base;
+	void *axi_virtual_base;
+	int fd;
+
+	// map the address space for the LED registers into user space so we can interact with them.
+	// we'll actually map in the entire CSR span of the HPS since we want to access various
+	// registers within that span
+
+	if ((fd = open("/dev/mem", (O_RDWR | O_SYNC))) == -1) {
+		printf("ERROR: could not open \"/dev/mem\"...\n");
+		return -EIO;
+	}
+
+	virtual_base =
+		mmap(NULL, HW_REGS_SPAN, (PROT_READ | PROT_WRITE), MAP_SHARED, fd, HW_REGS_BASE);
+
+	if (virtual_base == MAP_FAILED) {
+		printf("ERROR: mmap() failed...\n");
+		close(fd);
+		return -EFAULT;
+	}
+
+	axi_virtual_base = mmap(NULL, HW_FPGA_AXI_SPAN, (PROT_READ | PROT_WRITE), MAP_SHARED, fd,
+				ALT_AXI_FPGASLVS_OFST);
+
+	if (axi_virtual_base == MAP_FAILED) {
+		printf("ERROR: axi mmap() failed...\n");
+		close(fd);
+		return -EFAULT;
+	}
+
+	spi->miso_addr = axi_virtual_base + ((unsigned long)(ALT_LWFPGASLVS_OFST + SPI_MISO_BASE) &
+					     (unsigned long)(HW_REGS_MASK));
+	spi->mosi_addr = axi_virtual_base + ((unsigned long)(ALT_LWFPGASLVS_OFST + SPI_MOSI_BASE) &
+					     (unsigned long)(HW_REGS_MASK));
+	spi->sck_addr = axi_virtual_base + ((unsigned long)(ALT_LWFPGASLVS_OFST + SPI_SCK_BASE) &
+					    (unsigned long)(HW_REGS_MASK));
+	spi->ss_addr = axi_virtual_base + ((unsigned long)(ALT_LWFPGASLVS_OFST + SPI_SS_BASE) &
+					   (unsigned long)(HW_REGS_MASK));
+
+	*(spi->miso_addr) = 0x0;
+	*(spi->mosi_addr) = 0x0;
+	*(spi->sck_addr) = 0x0;
+	*(spi->ss_addr) = 0x1;
+
+	return 0;
+}
+
 // Função para transmitir um byte via SPI
 void spi_send_byte(struct spi *spi, uint8_t byte)
 {
@@ -114,7 +165,7 @@ int main()
 
 	int err = 0;
 
-	// err = setup_mem_addr(&spi_fields); // Assumimos que esta função está correta
+	err = setup_mem_addr(&spi_fields); // Assumimos que esta função está correta
 	if (err) {
 		printf("Erro ao configurar os endereços de memória\n");
 		return err;
