@@ -1,4 +1,4 @@
-TARGET = TESTE 
+TARGET = tcc 
 IP_ADDRESS = 192.168.0.8
 
 ALT_DEVICE_FAMILY ?= soc_cv_av
