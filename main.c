@@ -217,7 +217,7 @@ int main()
 
 #if DEBUG_ENABLED
 	printf("DEBUG habilitado!\n");
-	bringup_sequence(&spi_fields);
+	bringup_sequence(&spi_fields, 5);
 #endif
 
 	uint8_t data_to_send[] = {0x04}; // Exemplo de array de bytes a serem enviados
