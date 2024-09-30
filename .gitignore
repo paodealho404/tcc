@@ -1,3 +1,4 @@
 *.sh
 *.o
 .vscode/*
+*.exe
