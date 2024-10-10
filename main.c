@@ -17,13 +17,6 @@
 #define HW_REGS_SPAN (0x04000000) // 64 MB com espaço de endereçamento de 32 bits
 #define HW_REGS_MASK (HW_REGS_SPAN - 1)
 
-// Definições do SPI
-#define SPI_SCK_DIV 5 // Divisor de clock do SPI
-#define SPI_COMM_PERIOD_NS                                                                         \
-	(((uint32_t)(1000000000.0 / (SPI_SCK_FREQ >> SPI_SCK_DIV))) >>                             \
-	 1) // Período de comunicação SPI em segundos
-	    // (tempo mínimo = 2ns =~ 500MHz)
-
 #define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
 #define BYTE_TO_BINARY(byte)                                                                       \
 	((byte) & 0x80 ? '1' : '0'), ((byte) & 0x40 ? '1' : '0'), ((byte) & 0x20 ? '1' : '0'),     \
@@ -104,49 +97,28 @@ static inline void clear_sck(struct spi *spi)
 #define IMAGE_CHN_G   0b00000010
 #define IMAGE_CHN_B   0b00000011
 
-#define IMG_HEIGHT 240
-#define IMG_WIDTH  320
+#define IMG_HEIGHT         240
+#define IMG_WIDTH          320
+#define DELAY_MAGIC_NUMBER 1
 
-static inline void _nanosleep(uint32_t ns)
-{
-	struct timespec req = {0};
-	req.tv_sec = 0;
-	req.tv_nsec = ns;
-	nanosleep(&req, (struct timespec *)NULL);
-}
-
-void bringup_sequence(struct spi *spi, uint8_t multiplier)
+int bringup_sequence(struct spi *spi, uint8_t multiplier)
 {
 	// Testa a sequência de inicialização do SPI
 
-	_nanosleep(multiplier *
-		   ONE_SECOND_NS); // Pequeno atraso entre bytes, se DEBUG estiver habilitado
-
 	set_sck(spi); // Ativa o clock SPI
 
-	_nanosleep(multiplier *
-		   ONE_SECOND_NS); // Pequeno atraso entre bytes, se DEBUG estiver habilitado
-	set_mosi(spi, 0x1);        // Ativa o MOSI
-
-	_nanosleep(multiplier *
-		   ONE_SECOND_NS); // Pequeno atraso entre bytes, se DEBUG estiver habilitado
+	set_mosi(spi, 0x1); // Ativa o MOSI
 
 	clear_sck(spi); // Desativa o clock SPI
-	_nanosleep(multiplier *
-		   ONE_SECOND_NS); // Pequeno atraso entre bytes, se DEBUG estiver habilitado
 
 	set_mosi(spi, 0x0); // Desativa o MOSI
-	_nanosleep(multiplier *
-		   ONE_SECOND_NS); // Pequeno atraso entre bytes, se DEBUG estiver habilitado
 
 	clear_ss(spi); // Seleciona o slave
-	_nanosleep(multiplier *
-		   ONE_SECOND_NS); // Pequeno atraso entre bytes, se DEBUG estiver habilitado
 
 	// Inicializa o slave select
 	set_ss(spi); // Libera o slave após a transferência
-	_nanosleep(multiplier *
-		   ONE_SECOND_NS); // Pequeno atraso entre bytes, se DEBUG estiver habilitado
+
+	return 0;
 }
 
 static inline void spi_change_to_default(struct spi *spi)
@@ -196,18 +168,23 @@ int setup_mem_addr(struct spi *spi)
 	spi_change_to_default(spi);
 	return 0;
 }
-
+void delay(uint32_t cyc)
+{
+	uint32_t cycles = cyc;
+	while (cycles--) {
+	}
+}
 // Função para transmitir um byte via SPI
 void spi_send_byte(struct spi *spi, uint8_t byte)
 {
-	clear_ss(spi);                          // Seleciona o slave
-	for (int i = 7; i >= 0; i--) {          // SPI é geralmente MSB first
-		clear_sck(spi);                 // Troca o clock
-		_nanosleep(SPI_COMM_PERIOD_NS); // Espera o período do clock SPI
+	clear_ss(spi);                 // Seleciona o slave
+	for (int i = 7; i >= 0; i--) { // SPI é geralmente MSB first
+		clear_sck(spi);
+		delay(DELAY_MAGIC_NUMBER); // Troca o clock
 
 		set_mosi(spi, (byte >> i) & 0x1); // Envia o bit atual
 		set_sck(spi);                     // Troca de volta o clock
-		_nanosleep(SPI_COMM_PERIOD_NS);   // Espera o período do clock SPI
+		delay(DELAY_MAGIC_NUMBER);
 	}
 	spi_change_to_default(spi); // Volta para o estado inicial
 }
@@ -217,17 +194,14 @@ uint8_t spi_receive_byte(struct spi *spi)
 {
 	uint8_t received_byte = 0;
 
-	clear_ss(spi);                          // Seleciona o slave
-	for (int i = 7; i >= 0; i--) {          // SPI é geralmente MSB first
-		clear_sck(spi);                 // Troca o clock
-		_nanosleep(SPI_COMM_PERIOD_NS); // Espera o período do clock SPI
+	clear_ss(spi);                 // Seleciona o slave
+	for (int i = 7; i >= 0; i--) { // SPI é geralmente MSB first
+		clear_sck(spi);        // Troca o clock
+		delay(DELAY_MAGIC_NUMBER);
 
-		// Lê o bit de MISO e insere no byte recebido
-
-		set_sck(spi);                   // Troca o clock de volta
-		_nanosleep(SPI_COMM_PERIOD_NS); // Espera o período do clock SPI
+		set_sck(spi); // Troca o clock de volta
 		uint8_t bit = (*(spi->miso_addr) & 0x1);
-		_nanosleep(SPI_COMM_PERIOD_NS); // Espera o período do clock SPI
+		delay(DELAY_MAGIC_NUMBER);
 
 		received_byte |= (bit << i);
 	}
@@ -255,14 +229,6 @@ void fill_data_to_send(uint8_t *data_to_send, uint8_t start_byte, uint8_t *img_d
 	}
 }
 
-// double compute_time(struct timespec *start, struct timespec *end)
-// {
-// 	double start_time = (double)start->tv_sec + (double)start->tv_nsec / 1000000000;
-// 	double end_time = (double)end->tv_sec + (double)end->tv_nsec / 1000000000;
-
-// 	return end_time - start_time;
-// }
-
 int main()
 {
 	time_t start_time = {0};
@@ -270,7 +236,6 @@ int main()
 	struct spi spi_fields; // Estrutura do SPI inicializada
 	initializeImage();
 
-	printf("Frequencia de comunicacao SPI: %.3lf MHz\n", 1000.0 / (SPI_COMM_PERIOD_NS << 1));
 	printf("Iniciando a transferencia de dados via SPI!\n");
 
 	int err = 0;
@@ -307,10 +272,8 @@ int main()
 		spi_send_byte(&spi_fields, image_r_ch[i]); // Envia o byte
 	}
 
-	// clock_gettime(CLOCK_REALTIME, &send_time);
 	printf("Tempo de envio canal vermelho: %lf\n", difftime(time(NULL), start_time));
 
-	// clock_gettime(CLOCK_REALTIME, &start_time);
 	start_time = time(NULL);
 	spi_send_byte(&spi_fields, 0x00); // Envia o byte
 
@@ -351,9 +314,9 @@ int main()
 	// clock_gettime(CLOCK_REALTIME, &recv_time);
 	printf("Tempo de recebimento canal vermelho: %lf\n", difftime(time(NULL), start_time));
 
-	for (size_t i = 0; i < (IMG_WIDTH * IMG_HEIGHT); i++) {
+	for (size_t i = 0; i < IMG_WIDTH; i++) {
 		printf("0x%X ", image_rcvd[i]);
-		if ((i + 1) % IMG_WIDTH == 0) {
+		if ((i + 1) % IMG_WIDTH / 10 == 0) {
 			printf("\n");
 		}
 	}
