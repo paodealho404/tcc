@@ -2,3 +2,6 @@
 *.o
 .vscode/*
 *.exe
+.venv/*
+venv/*
+.idea/*
