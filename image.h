@@ -8,8 +8,6 @@
 #define IMAGE_HEIGHT 240
 #define IMAGE_WIDTH  320
 
-extern uint8_t image[IMAGE_HEIGHT * IMAGE_WIDTH];
-
-void initializeImage();
+extern const uint8_t image[IMAGE_HEIGHT * IMAGE_WIDTH];
 
 #endif
