@@ -1,5 +1,6 @@
 TARGET = tcc 
-IP_ADDRESS = 192.168.0.56
+IMG = image.bmp
+IP_ADDRESS = 192.168.0.123
 DEBUG=1
 
 ALT_DEVICE_FAMILY ?= soc_cv_av
@@ -25,3 +26,6 @@ clean:
 
 flash:
 	. ./send_exe.sh $(IP_ADDRESS) $(TARGET)
+
+read_img:
+	. ./read_img.sh $(IP_ADDRESS) $(IMG)

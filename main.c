@@ -70,7 +70,7 @@ static inline void clear_sck(struct spi *spi)
 }
 
 /* Protocolo:
- * Byte 1 -> Comando -> Retorno FPGA [7-6] | Operação [5-2] | Canal da image [1-0]
+ * Byte 1 -> Comando -> Retorno FPGA [7-6] | Operação [5-2] | Canal da imagem [1-0]
  * Bytes 2-3 -> Altura da imagem
  * Bytes 3-4 -> Largura da imagem
  * Bytes restantes -> Pixels da imagem
@@ -78,7 +78,7 @@ static inline void clear_sck(struct spi *spi)
  * Retorno FPGA: 00 -> Sem retorno | 01 -> PDI em execução,
  *
  * Operação: 0000 -> Nenhuma operação | 0001 -> Envio de imagem | 0010 -> Recebimento de
- * imagem | 0011 -> Execução de PDI,
+ * imagem | 0011 -> Execução de PDI | 0111 -> Classificação do gesto,
  *
  * Canal da imagem: 00 -> Canal padrão (R) | 01 -> Canal 1 (R) | 02 -> Canal 2(G) |
  * 11 -> Canal 3 (B).
@@ -91,8 +91,12 @@ static inline void clear_sck(struct spi *spi)
 #define SEND_IMAGE_OP_MASK 0b00000100
 #define RECV_IMAGE_OP_MASK 0b00001000
 #define PDI_EXEC_OP_MASK   0b00001100
+#define GESTURE_EVAL_MASK  0b00011100
+#define HAND_AREA_MASK     0b00010000
+#define HAND_PER_MASK      0b00010100
+#define HAND_PEAK_MASK     0b00011000
 
-#define IMAGE_DFT_CHN 0b00000000
+#define IMAGE_CHN_DFT 0b00000000
 #define IMAGE_CHN_R   0b00000001
 #define IMAGE_CHN_G   0b00000010
 #define IMAGE_CHN_B   0b00000011
@@ -101,7 +105,7 @@ static inline void clear_sck(struct spi *spi)
 #define IMG_WIDTH          320
 #define DELAY_MAGIC_NUMBER 1
 
-int bringup_sequence(struct spi *spi, uint8_t multiplier)
+int bringup_sequence(struct spi *spi)
 {
 	// Testa a sequência de inicialização do SPI
 
@@ -168,7 +172,7 @@ int setup_mem_addr(struct spi *spi)
 	spi_change_to_default(spi);
 	return 0;
 }
-void delay(uint32_t cyc)
+static inline void delay(uint32_t cyc)
 {
 	uint32_t cycles = cyc;
 	while (cycles--) {
@@ -207,15 +211,10 @@ uint8_t spi_receive_byte(struct spi *spi)
 	}
 
 	spi_change_to_default(spi); // Volta para o estado inicial
-
-#if DEBUG == 1
-	printf("Byte recebido: 0x%X\n", received_byte);
-#endif
-
 	return received_byte;
 }
 
-void fill_data_to_send(uint8_t *data_to_send, uint8_t start_byte, uint8_t *img_data)
+void fill_data_to_send(uint8_t *data_to_send, uint8_t start_byte, const uint8_t *img_data)
 {
 
 	data_to_send[0] = start_byte;
@@ -234,7 +233,6 @@ int main()
 	time_t start_time = {0};
 
 	struct spi spi_fields; // Estrutura do SPI inicializada
-	initializeImage();
 
 	printf("Iniciando a transferencia de dados via SPI!\n");
 
@@ -248,22 +246,34 @@ int main()
 
 #if DEBUG == 1
 	printf("DEBUG habilitado!\n");
-	bringup_sequence(&spi_fields, 5);
+	bringup_sequence(&spi_fields);
 #endif
 	uint8_t start_byte_r_ch = NO_RETURN_MASK | SEND_IMAGE_OP_MASK | IMAGE_CHN_R;
 	uint8_t start_byte_g_ch = NO_RETURN_MASK | SEND_IMAGE_OP_MASK | IMAGE_CHN_G;
 	uint8_t start_byte_b_ch = NO_RETURN_MASK | SEND_IMAGE_OP_MASK | IMAGE_CHN_B;
+	uint8_t start_pdi_byte = NO_RETURN_MASK | PDI_EXEC_OP_MASK | IMAGE_CHN_DFT;
 
 	uint8_t image_r_ch[5 + (IMG_HEIGHT * IMG_WIDTH)];
 	uint8_t image_g_ch[5 + (IMG_HEIGHT * IMG_WIDTH)];
 	uint8_t image_b_ch[5 + (IMG_HEIGHT * IMG_WIDTH)];
 	uint8_t received_byte = 0;
 
-	fill_data_to_send(image_r_ch, start_byte_r_ch, image);
-	fill_data_to_send(image_g_ch, start_byte_g_ch, image);
-	fill_data_to_send(image_b_ch, start_byte_b_ch, image);
+	UNUSED(received_byte);
+
+	fill_data_to_send(image_r_ch, start_byte_r_ch, image_r_ch);
+	fill_data_to_send(image_g_ch, start_byte_g_ch, image_g_ch);
+	fill_data_to_send(image_b_ch, start_byte_b_ch, image_b_ch);
 
 	size_t data_len = sizeof(image_r_ch) / sizeof(image_r_ch[0]);
+
+	for (size_t i = 0; i < 10; i++) {
+		printf("0x%X 0x%X 0x%X 0x%X 0x%X \t", image_r_ch[i], image_r_ch[i + 1],
+		       image_r_ch[i + 2], image_r_ch[i + 3], image_r_ch[i + 4]);
+		printf("0x%X 0x%X 0x%X 0x%X 0x%X \t", image_g_ch[i], image_g_ch[i + 1],
+		       image_g_ch[i + 2], image_g_ch[i + 3], image_g_ch[i + 4]);
+		printf("0x%X 0x%X 0x%X 0x%X 0x%X \n", image_b_ch[i], image_b_ch[i + 1],
+		       image_b_ch[i + 2], image_b_ch[i + 3], image_b_ch[i + 4]);
+	}
 
 	// clock_gettime(CLOCK_REALTIME, &start_time);
 	start_time = time(NULL);
@@ -295,35 +305,84 @@ int main()
 	// clock_gettime(CLOCK_REALTIME, &send_time);
 	printf("Tempo de envio canal azul: %lf\n", difftime(time(NULL), start_time));
 
-	uint8_t request_image = NO_RETURN_MASK | RECV_IMAGE_OP_MASK | IMAGE_CHN_R;
-
-	uint8_t image_rcvd[IMG_WIDTH * IMG_HEIGHT] = {0};
-
-	printf("Recebendo imagem do canal R\n");
+	printf("Solicitando execucao do PDI\n");
 
 	// clock_gettime(CLOCK_REALTIME, &start_time);
 	start_time = time(NULL);
-	spi_send_byte(&spi_fields, 0x00);          // Envia o byte
-	spi_send_byte(&spi_fields, request_image); // Envia o byte
 
-	spi_receive_byte(&spi_fields);
-	for (size_t i = 0; i < (IMG_WIDTH * IMG_HEIGHT); i++) {
-		image_rcvd[i] = spi_receive_byte(&spi_fields); // Recebe o byte
-	}
+	spi_send_byte(&spi_fields, 0x00);           // Envia o byte
+	spi_send_byte(&spi_fields, start_pdi_byte); // Envia o byte
+	delay(ONE_SECOND_NS / 2);
 
-	// clock_gettime(CLOCK_REALTIME, &recv_time);
-	printf("Tempo de recebimento canal vermelho: %lf\n", difftime(time(NULL), start_time));
-
-	for (size_t i = 0; i < IMG_WIDTH; i++) {
-		printf("0x%X ", image_rcvd[i]);
-		if ((i + 1) % IMG_WIDTH / 10 == 0) {
-			printf("\n");
+	while (1) {
+		received_byte = spi_receive_byte(&spi_fields); // Recebe o byte
+		if (received_byte == 0x00) {
+			continue;
 		}
+		break;
 	}
 
-	UNUSED(request_image);
-	UNUSED(received_byte);
-	printf("Transferencia de dados concluida!\n");
+	while (1) {
+		received_byte = spi_receive_byte(&spi_fields); // Recebe o byte
+		if (received_byte == PDI_RUNNING_MASK) {
+			continue;
+		}
+		break;
+	}
+
+	printf("Solicitando classificacao do gesto\n");
+
+	uint8_t gesture_eval = NO_RETURN_MASK | GESTURE_EVAL_MASK | IMAGE_CHN_DFT;
+
+	// clock_gettime(CLOCK_REALTIME, &start_time);
+	start_time = time(NULL);
+
+	spi_send_byte(&spi_fields, 0x00);         // Envia o byte
+	spi_send_byte(&spi_fields, gesture_eval); // Envia o byte
+	spi_send_byte(&spi_fields, 0x00);         // Envia o byte
+
+	printf("\nClassification ");
+	uint32_t pdi_result = 0;
+	for (int i = 3; i >= 0; i--) {
+		uint8_t received_byte = spi_receive_byte(&spi_fields);
+		printf(BYTE_TO_BINARY_PATTERN " ", BYTE_TO_BINARY(received_byte));
+		pdi_result |= (received_byte << (8 * i));
+	}
+
+	uint32_t hand_area_result = 0;
+	spi_send_byte(&spi_fields, HAND_AREA_MASK);
+	spi_send_byte(&spi_fields, 0x00); // Envia o byte
+
+	printf("\nHand area ");
+	for (int i = 3; i >= 0; i--) {
+		uint8_t received_byte = spi_receive_byte(&spi_fields);
+		printf(BYTE_TO_BINARY_PATTERN " ", BYTE_TO_BINARY(received_byte));
+		hand_area_result |= (received_byte << (8 * i));
+	}
+
+	uint32_t hand_per_result = 0;
+	spi_send_byte(&spi_fields, 0x00); // Envia o byte
+	spi_send_byte(&spi_fields, HAND_PER_MASK);
+
+	printf("\nHand perimeter ");
+	for (int i = 3; i >= 0; i--) {
+		uint8_t received_byte = spi_receive_byte(&spi_fields);
+		printf(BYTE_TO_BINARY_PATTERN " ", BYTE_TO_BINARY(received_byte));
+		hand_per_result |= (received_byte << (8 * i));
+	}
+
+	uint32_t hand_peak_result = 0;
+	spi_send_byte(&spi_fields, 0x00); // Envia o byte
+	spi_send_byte(&spi_fields, HAND_PEAK_MASK);
+
+	printf("\nHand peak ");
+	for (int i = 3; i >= 0; i--) {
+		uint8_t received_byte = spi_receive_byte(&spi_fields);
+		printf(BYTE_TO_BINARY_PATTERN " ", BYTE_TO_BINARY(received_byte));
+		hand_peak_result |= (received_byte << (8 * i));
+	}
+
+	printf("\nTransferencia de dados concluida!\n");
 
 	return 0;
 }
