@@ -14,7 +14,7 @@ ARCH= arm
  
 build: $(TARGET) 
  
-$(TARGET): main.o  image.o
+$(TARGET): main.o  image.o spi.o pdi.o
 	$(CC) $(LDFLAGS)   $^ -o $@  
  
 %.o : %.c 
