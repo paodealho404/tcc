@@ -253,33 +253,33 @@ int main()
 	uint8_t start_byte_b_ch = NO_RETURN_MASK | SEND_IMAGE_OP_MASK | IMAGE_CHN_B;
 	uint8_t start_pdi_byte = NO_RETURN_MASK | PDI_EXEC_OP_MASK | IMAGE_CHN_DFT;
 
-	uint8_t image_r_ch[5 + (IMG_HEIGHT * IMG_WIDTH)];
-	uint8_t image_g_ch[5 + (IMG_HEIGHT * IMG_WIDTH)];
-	uint8_t image_b_ch[5 + (IMG_HEIGHT * IMG_WIDTH)];
+	uint8_t image_r_ch_pkt[5 + (IMG_HEIGHT * IMG_WIDTH)];
+	uint8_t image_g_ch_pkt[5 + (IMG_HEIGHT * IMG_WIDTH)];
+	uint8_t image_b_ch_pkt[5 + (IMG_HEIGHT * IMG_WIDTH)];
 	uint8_t received_byte = 0;
 
 	UNUSED(received_byte);
 
-	fill_data_to_send(image_r_ch, start_byte_r_ch, image_r_ch);
-	fill_data_to_send(image_g_ch, start_byte_g_ch, image_g_ch);
-	fill_data_to_send(image_b_ch, start_byte_b_ch, image_b_ch);
+	fill_data_to_send(image_r_ch_pkt, start_byte_r_ch, img_r_channel);
+	fill_data_to_send(image_g_ch_pkt, start_byte_g_ch, img_g_channel);
+	fill_data_to_send(image_b_ch_pkt, start_byte_b_ch, img_b_channel);
 
-	size_t data_len = sizeof(image_r_ch) / sizeof(image_r_ch[0]);
+	size_t data_len = sizeof(image_r_ch_pkt) / sizeof(image_r_ch_pkt[0]);
 
 	for (size_t i = 0; i < 10; i++) {
-		printf("0x%X 0x%X 0x%X 0x%X 0x%X \t", image_r_ch[i], image_r_ch[i + 1],
-		       image_r_ch[i + 2], image_r_ch[i + 3], image_r_ch[i + 4]);
-		printf("0x%X 0x%X 0x%X 0x%X 0x%X \t", image_g_ch[i], image_g_ch[i + 1],
-		       image_g_ch[i + 2], image_g_ch[i + 3], image_g_ch[i + 4]);
-		printf("0x%X 0x%X 0x%X 0x%X 0x%X \n", image_b_ch[i], image_b_ch[i + 1],
-		       image_b_ch[i + 2], image_b_ch[i + 3], image_b_ch[i + 4]);
+		printf("0x%X 0x%X 0x%X 0x%X 0x%X \t", image_r_ch_pkt[i], image_r_ch_pkt[i + 1],
+		       image_r_ch_pkt[i + 2], image_r_ch_pkt[i + 3], image_r_ch_pkt[i + 4]);
+		printf("0x%X 0x%X 0x%X 0x%X 0x%X \t", image_g_ch_pkt[i], image_g_ch_pkt[i + 1],
+		       image_g_ch_pkt[i + 2], image_g_ch_pkt[i + 3], image_g_ch_pkt[i + 4]);
+		printf("0x%X 0x%X 0x%X 0x%X 0x%X \n", image_b_ch_pkt[i], image_b_ch_pkt[i + 1],
+		       image_b_ch_pkt[i + 2], image_b_ch_pkt[i + 3], image_b_ch_pkt[i + 4]);
 	}
 
 	// clock_gettime(CLOCK_REALTIME, &start_time);
 	start_time = time(NULL);
 
 	for (size_t i = 0; i < data_len; i++) {
-		spi_send_byte(&spi_fields, image_r_ch[i]); // Envia o byte
+		spi_send_byte(&spi_fields, image_r_ch_pkt[i]); // Envia o byte
 	}
 
 	printf("Tempo de envio canal vermelho: %lf\n", difftime(time(NULL), start_time));
@@ -288,7 +288,7 @@ int main()
 	spi_send_byte(&spi_fields, 0x00); // Envia o byte
 
 	for (size_t i = 0; i < data_len; i++) {
-		spi_send_byte(&spi_fields, image_g_ch[i]); // Envia o byte
+		spi_send_byte(&spi_fields, image_g_ch_pkt[i]); // Envia o byte
 	}
 
 	// clock_gettime(CLOCK_REALTIME, &send_time);
@@ -299,7 +299,7 @@ int main()
 	spi_send_byte(&spi_fields, 0x00); // Envia o byte
 
 	for (size_t i = 0; i < data_len; i++) {
-		spi_send_byte(&spi_fields, image_b_ch[i]); // Envia o byte
+		spi_send_byte(&spi_fields, image_b_ch_pkt[i]); // Envia o byte
 	}
 
 	// clock_gettime(CLOCK_REALTIME, &send_time);
@@ -312,7 +312,6 @@ int main()
 
 	spi_send_byte(&spi_fields, 0x00);           // Envia o byte
 	spi_send_byte(&spi_fields, start_pdi_byte); // Envia o byte
-	delay(ONE_SECOND_NS / 2);
 
 	while (1) {
 		received_byte = spi_receive_byte(&spi_fields); // Recebe o byte
@@ -329,6 +328,34 @@ int main()
 		}
 		break;
 	}
+
+	uint8_t img_r_start_byte = NO_RETURN_MASK | RECV_IMAGE_OP_MASK | IMAGE_CHN_R;
+	uint16_t img_white = 0;
+	spi_send_byte(&spi_fields, 0x00);             // Envia o byte
+	spi_send_byte(&spi_fields, img_r_start_byte); // Envia o byte
+	spi_send_byte(&spi_fields, 0x00);             // Envia o byte
+
+	// Cria arquivo com a imagem em formato de texto
+	FILE *img_file = fopen("img_r_channel.txt", "w");
+	if (img_file == NULL) {
+		printf("Erro ao criar o arquivo\n");
+		return -1;
+	}
+
+	for (size_t i = 0; i < data_len - 5; i++) {
+		uint8_t received_byte = spi_receive_byte(&spi_fields); // Recebe o byte
+		fprintf(img_file, "%c", received_byte ? '*' : ' ');
+		if (i % 320 == 0 && i != 0) {
+			fprintf(img_file, "\n");
+		}
+
+		if (received_byte > 0) {
+
+			img_white++;
+		}
+	}
+
+	printf("Quantidade de pixels brancos no canal vermelho: %d\n", img_white);
 
 	printf("Solicitando classificacao do gesto\n");
 
@@ -348,6 +375,7 @@ int main()
 		printf(BYTE_TO_BINARY_PATTERN " ", BYTE_TO_BINARY(received_byte));
 		pdi_result |= (received_byte << (8 * i));
 	}
+	printf("\nClassification: %d\n", pdi_result);
 
 	uint32_t hand_area_result = 0;
 	spi_send_byte(&spi_fields, HAND_AREA_MASK);
@@ -359,10 +387,11 @@ int main()
 		printf(BYTE_TO_BINARY_PATTERN " ", BYTE_TO_BINARY(received_byte));
 		hand_area_result |= (received_byte << (8 * i));
 	}
+	printf("\nHand area: %d\n", hand_area_result);
 
 	uint32_t hand_per_result = 0;
-	spi_send_byte(&spi_fields, 0x00); // Envia o byte
 	spi_send_byte(&spi_fields, HAND_PER_MASK);
+	spi_send_byte(&spi_fields, 0x00); // Envia o byte
 
 	printf("\nHand perimeter ");
 	for (int i = 3; i >= 0; i--) {
@@ -371,9 +400,11 @@ int main()
 		hand_per_result |= (received_byte << (8 * i));
 	}
 
+	printf("\nHand perimeter: %d\n", hand_per_result);
+
 	uint32_t hand_peak_result = 0;
-	spi_send_byte(&spi_fields, 0x00); // Envia o byte
 	spi_send_byte(&spi_fields, HAND_PEAK_MASK);
+	spi_send_byte(&spi_fields, 0x00); // Envia o byte
 
 	printf("\nHand peak ");
 	for (int i = 3; i >= 0; i--) {
@@ -382,7 +413,8 @@ int main()
 		hand_peak_result |= (received_byte << (8 * i));
 	}
 
-	printf("\nTransferencia de dados concluida!\n");
+	printf("\nHand peak: %d\n", hand_peak_result);
 
+	printf("\nTransferencia de dados concluida!\n");
 	return 0;
 }
