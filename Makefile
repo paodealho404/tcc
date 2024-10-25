@@ -1,6 +1,6 @@
 TARGET = tcc 
-IMG = image.bmp
-IP_ADDRESS = 192.168.0.123
+IMG = img_r_channel.txt
+IP_ADDRESS = 192.168.0.27
 DEBUG=1
 
 ALT_DEVICE_FAMILY ?= soc_cv_av
@@ -29,3 +29,8 @@ flash:
 
 read_img:
 	. ./read_img.sh $(IP_ADDRESS) $(IMG)
+
+all:
+	make clean
+	make build
+	make flash
