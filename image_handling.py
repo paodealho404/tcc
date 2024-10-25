@@ -4,8 +4,7 @@ img = cv2.imread('./images/victory.JPEG')
 h = 240
 w = 320
 img = cv2.resize(img, (w, h))
-
-img_r, img_g, img_b = cv2.split(img)
+img_b,  img_g, img_r  = cv2.split(img)
 # cv2.imshow("Red", img_r)
 # cv2.imshow("Green", img_g)
 # cv2.imshow("Blue", img_b)
