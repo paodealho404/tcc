@@ -9,7 +9,7 @@ Sends an image to the FPGA, where it is stored, and later retrieves it upon requ
 | MOSI | GPIO 10 | GPIO_0_D1 |
 | MISO | GPIO 9 | GPIO_0_D0 |
 | SCK | GPIO 11 | GPIO_0_D2 |
-| SS | GPIO 22 | GPIO_0_D3 |
+| SS | GPIO 7 | GPIO_0_D3 |
 | GND | PIN 20 | PIN 12 |
 
 ![image](https://github.com/gustavo95/DOC_PP1_RASP/assets/7265988/7ce6863b-e8e2-4029-89d7-436c77835f90)
