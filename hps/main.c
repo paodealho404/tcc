@@ -90,31 +90,22 @@ int main()
 		spi_send_byte(image_r_ch_pkt[i]); // Envia o byte
 	}
 
-#if DEBUG == 1
-	printf("Tempo de envio canal vermelho: %lf\n", difftime(time(NULL), start_time));
-#endif
-
-	gettimeofday(&start_time, NULL);
 	spi_send_byte(0x00); // Envia o byte
 
 	for (size_t i = 0; i < data_len; i++) {
 		spi_send_byte(image_g_ch_pkt[i]); // Envia o byte
 	}
 
-#if DEBUG == 1
-	printf("Tempo de envio canal verde: %lf\n", difftime(time(NULL), start_time));
-#endif
-
-	gettimeofday(&start_time, NULL);
 	spi_send_byte(0x00); // Envia o byte
 
 	for (size_t i = 0; i < data_len; i++) {
 		spi_send_byte(image_b_ch_pkt[i]); // Envia o byte
 	}
 
-#if DEBUG == 1
-	printf("Tempo de envio canal azul: %lf\n", difftime(time(NULL), start_time));
-#endif
+	gettuntimeofday(&end_time, NULL);
+	printf("Tempo total de envio dos canais da imagem: %lu\n",
+	       (end_time.tv_sec - begin_time.tv_sec) * 1000000 + end_time.tv_usec -
+		       begin_time.tv_usec);
 
 	gettimeofday(&start_time, NULL);
 	err = execute_pdi();
