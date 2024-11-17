@@ -1,0 +1,18 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "configurationProvider": "ms-vscode.makefile-tools",
+            "compilerPath": "C:/Program Files (x86)/Arm GNU Toolchain arm-none-linux-gnueabihf/10.3/gcc-arm-10.3-2021.07-mingw-w64-i686-arm-none-linux-gnueabihf/bin/arm-none-linux-gnueabihf-gcc"
+        }
+    ],
+    "version": 4
+}

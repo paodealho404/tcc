@@ -1,0 +1,22 @@
+{
+    "files.associations": {
+        "hps_0.h": "c",
+        "errno.h": "c",
+        "errno-base.h": "c",
+        "mman.h": "c",
+        "spi.h": "c",
+        "unistd.h": "c",
+        "cstdint": "cpp",
+        "stdint.h": "c",
+        "image.h": "c",
+        "cstddef": "c",
+        "fcntl.h": "c",
+        "stdio.h": "c",
+        "pdi.h": "c",
+        "time.h": "c",
+        "stdlib.h": "c",
+        "pthread.h": "c"
+    },
+    "editor.formatOnSave": true,
+    "C_Cpp.errorSquiggles": "disabled",
+}
