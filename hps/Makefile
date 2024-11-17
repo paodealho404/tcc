@@ -1,7 +1,7 @@
 TARGET = tcc 
 IMG = img_r_channel.txt
-IP_ADDRESS = 192.168.0.27
-DEBUG=1
+IP_ADDRESS = 192.168.0.96
+DEBUG=0
 
 ALT_DEVICE_FAMILY ?= soc_cv_av
 PROJECT_ROOT = C:\intelFPGA\20.1\embedded\tcc

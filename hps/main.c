@@ -102,7 +102,7 @@ int main()
 		spi_send_byte(image_b_ch_pkt[i]); // Envia o byte
 	}
 
-	gettuntimeofday(&end_time, NULL);
+	gettimeofday(&end_time, NULL);
 	printf("Tempo total de envio dos canais da imagem: %lu\n",
 	       (end_time.tv_sec - begin_time.tv_sec) * 1000000 + end_time.tv_usec -
 		       begin_time.tv_usec);
