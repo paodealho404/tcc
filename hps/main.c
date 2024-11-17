@@ -112,11 +112,10 @@ int main()
 
 	gettimeofday(&end_time, NULL);
 
-	printf("Tempo total de execucao: %lu\n", (end_time.tv_sec - begin_time.tv_sec) * 1000000 +
-							 end_time.tv_usec - begin_time.tv_usec);
-
 	printf("Tempo de execucao do PDI: %lu\n", (end_time.tv_sec - start_time.tv_sec) * 1000000 +
 							  end_time.tv_usec - start_time.tv_usec);
+	printf("Tempo total de execucao: %lu\n", (end_time.tv_sec - begin_time.tv_sec) * 1000000 +
+							 end_time.tv_usec - begin_time.tv_usec);
 
 	if (err) {
 		printf("Erro ao executar o PDI\n");
