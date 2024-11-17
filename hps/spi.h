@@ -12,6 +12,8 @@
 #include "errno.h"
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <sys/time.h>
+
 #include <unistd.h>
 #include <stdint.h>
 #define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"

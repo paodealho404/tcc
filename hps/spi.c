@@ -14,11 +14,11 @@
  * 11 -> Canal 3 (B).
  */
 
-#define DELAY_MAGIC_NUMBER 1
+#define ONE_CYC_DELAY 1
 // Configurações para o bridge HPS-to-FPGA
-#define HW_REGS_BASE       (ALT_STM_OFST)
-#define HW_REGS_SPAN       (0x04000000) // 64 MB com espaço de endereçamento de 32 bits
-#define HW_REGS_MASK       (HW_REGS_SPAN - 1)
+#define HW_REGS_BASE  (ALT_STM_OFST)
+#define HW_REGS_SPAN  (0x04000000) // 64 MB com espaço de endereçamento de 32 bits
+#define HW_REGS_MASK  (HW_REGS_SPAN - 1)
 
 #define ONE_SECOND_NS (1000000000)
 
@@ -139,14 +139,14 @@ static inline void delay(uint32_t cyc)
 // Função para transmitir um byte via SPI
 void spi_send_byte(uint8_t byte)
 {
-	clear_ss();                        // Seleciona o slave
-	for (int i = 7; i >= 0; i--) {     // SPI é geralmente MSB first
-		clear_sck();               // Troca o clock
-		delay(DELAY_MAGIC_NUMBER); // Troca o clock
+	clear_ss();                    // Seleciona o slave
+	for (int i = 7; i >= 0; i--) { // SPI é geralmente MSB first
+		clear_sck();           // Troca o clock
+		// delay(ONE_CYC_DELAY);  // Troca o clock
 
 		set_mosi((byte >> i) & 0x1); // Envia o bit atual
 		set_sck();                   // Troca de volta o clock
-		delay(DELAY_MAGIC_NUMBER);
+					     // delay(ONE_CYC_DELAY);
 	}
 	spi_change_to_default(); // Volta para o estado inicial
 }
@@ -159,11 +159,11 @@ uint8_t spi_receive_byte()
 	clear_ss();                    // Seleciona o slave
 	for (int i = 7; i >= 0; i--) { //  é geralmente MSB first
 		clear_sck();           // Troca o clock
-		delay(DELAY_MAGIC_NUMBER);
+		delay(ONE_CYC_DELAY);
 
 		set_sck(); // Troca o clock de volta
 		uint8_t bit = (*(spi_fields.miso_addr) & 0x1);
-		delay(DELAY_MAGIC_NUMBER);
+		delay(ONE_CYC_DELAY);
 
 		received_byte |= (bit << i);
 	}
