@@ -44,4 +44,4 @@ def txt_to_image(txt_file_path, output_image_path):
     except Exception as e:
         print(f"Error: {e}")
 
-txt_to_image('./fpga_return/img_r_channel.txt', './fpga_return/victory.png')
+txt_to_image('./fpga_return/img_r_channel.txt', './fpga_return/three_fingers_up.png')

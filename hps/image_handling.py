@@ -1,6 +1,6 @@
 import cv2 as cv2
 import numpy as np
-img = cv2.imread('./images/victory.JPEG')
+img = cv2.imread('./images/three_fingers_up.JPEG')
 h = 240
 w = 320
 img = cv2.resize(img, (w, h))
