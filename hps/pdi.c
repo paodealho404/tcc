@@ -73,6 +73,7 @@ int execute_pdi()
 #endif
 		break;
 	default:
+		printf("\nClassification: Unknown %u\n", pdi_result);
 		break;
 	}
 
